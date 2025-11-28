@@ -1,7 +1,10 @@
 use std::path::PathBuf;
 use whisper_rs::{WhisperContext, WhisperContextParameters, FullParams, SamplingStrategy};
 
-pub fn transcribe(audio_path: &PathBuf, model_path: &PathBuf) -> Result<String, String> {
+pub fn transcribe<F>(audio_path: &PathBuf, model_path: &PathBuf, on_progress: F) -> Result<String, String> 
+where
+    F: Fn(i32) + Send + Sync + 'static,
+{
     println!("Loading model from {:?}", model_path);
     let ctx = WhisperContext::new_with_params(
         model_path.to_str().unwrap(),
@@ -27,12 +30,21 @@ pub fn transcribe(audio_path: &PathBuf, model_path: &PathBuf) -> Result<String, 
     println!("Starting transcription on {} samples...", samples.len());
     
     let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
-    params.set_language(Some("vi")); // Default to Vietnamese as per plan, or make configurable
+    params.set_language(Some("vi")); // Default to Vietnamese
     params.set_print_special(false);
     params.set_print_progress(false);
     params.set_print_realtime(false);
     params.set_print_timestamps(false);
 
+    params.set_print_realtime(false);
+    params.set_print_timestamps(false);
+
+    // Setup progress callback
+    // params.set_progress_callback_safe(move |progress| {
+    //     on_progress(progress);
+    // });
+
+    // Run whisper
     state.full(params, &samples[..]).map_err(|e| format!("Failed to run whisper: {:?}", e))?;
 
     let num_segments = state.full_n_segments().map_err(|e| format!("Failed to get segments: {:?}", e))?;
